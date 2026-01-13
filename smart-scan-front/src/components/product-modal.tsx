@@ -11,8 +11,7 @@ interface ProductModalProps {
 export const ProductModal = ({ product, isOpen, onClose }: ProductModalProps) => {
   const [showFeedback, setShowFeedback] = useState<string | null>(null);
 
-  // Fechar modal com tecla ESC
-  useEffect(() => {
+    useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && isOpen) {
         onClose();

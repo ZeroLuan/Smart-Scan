@@ -5,7 +5,7 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export interface Product {
-  id: number;
+  id: number | string;
   name: string;
   category: string;
   price: number;
@@ -13,6 +13,8 @@ export interface Product {
   image: string;
   description: string;
   specs: string[];
+  stock_quantity?: number;
+  supplier?: string;
 }
 
 export const MOCK_PRODUCTS: Product[] = [

@@ -36,29 +36,70 @@ function App() {
   const handleImageUpload = async (file: File) => {
     setIsLoading(true);
     
-    // Simular chamada ao backend
-    console.log('📸 Imagem enviada para processamento:', {
-      name: file.name,
-      size: file.size,
-      type: file.type,
-      timestamp: new Date().toISOString()
-    });
+    try {
+      console.log('📸 Imagem enviada para processamento:', {
+        name: file.name,
+        size: file.size,
+        type: file.type,
+        timestamp: new Date().toISOString()
+      });
 
-    // Simular delay de processamento (200-300ms)
-    await new Promise(resolve => setTimeout(resolve, 250));
+      const formData = new FormData();
+      formData.append('data', file); // n8n binary data usually expects a field name, 'data' or 'file' is common.
 
-    // Simular resposta do backend retornando produtos similares
-    // Em produção, isso seria substituído pela resposta real da API
-    const simulatedResults = MOCK_PRODUCTS.filter(p => 
-      Math.random() > 0.3 // Simulação: 70% de chance de match
-    ).slice(0, 4); // Retornar até 4 produtos
+      // URL do Webhook do n8n (Produção)
+      const WEBHOOK_URL = 'http://localhost:5678/webhook/48cccf3d-6ef3-4449-98fc-1e6c8e3171c1';
 
-    console.log('✅ Produtos similares encontrados:', simulatedResults.map(p => p.name));
+      const response = await fetch(WEBHOOK_URL, {
+        method: 'POST',
+        body: formData,
+      });
 
-    // Limpar busca por texto e mostrar resultados da imagem
-    setSearchTerm('');
-    setFilteredProducts(simulatedResults);
-    setIsLoading(false);
+      if (!response.ok) {
+        throw new Error(`Erro na requisição: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      console.log('✅ Resposta do n8n:', data);
+
+      // Normalizar a resposta (pode ser um array ou um objeto único)
+      const productsData = Array.isArray(data) ? data : [data];
+
+      if (productsData.length === 0) {
+        alert('Nenhum produto encontrado.');
+        setIsLoading(false);
+        return;
+      }
+
+      // Mapear os dados do banco para o formato do frontend
+      const mappedProducts: Product[] = productsData.map((item: any) => ({
+        id: item.id,
+        name: item.name,
+        category: item.category || 'Geral',
+        price: Number(item.price),
+        rating: 4.5, // Valor padrão já que não tem no banco
+        image: item.image_url || 'https://placehold.co/600x600?text=Sem+Imagem',
+        description: item.description || '',
+        specs: item.supplier ? [`Fornecedor: ${item.supplier}`] : [], // Usar fornecedor como spec
+        stock_quantity: item.stock_quantity,
+        supplier: item.supplier
+      }));
+
+      // Se encontrou apenas um, abre o modal direto
+      if (mappedProducts.length === 1) {
+        setSelectedProduct(mappedProducts[0]);
+        setIsModalOpen(true);
+      } else {
+        // Se encontrou vários, mostra na grid
+        setFilteredProducts(mappedProducts);
+      }
+
+    } catch (error) {
+      console.error('Erro ao processar imagem:', error);
+      alert('Erro ao processar a imagem. Verifique se o n8n está rodando e o webhook está ativo.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Handler para abrir modal de detalhes
